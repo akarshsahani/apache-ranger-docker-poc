@@ -1,0 +1,61 @@
+version: "3.8"
+
+services:
+  ranger-zk:
+    image: apache/ranger-zk:2.6.0
+    container_name: ranger-zk
+    hostname: ranger-zk.example.com
+    # networks:
+    #   - rangernw
+    ports:
+      - "2181:2181"
+
+  ranger-solr:
+    image: apache/ranger-solr:2.6.0
+    container_name: ranger-solr
+    hostname: ranger-solr.example.com
+    # networks:
+    #   - rangernw
+    ports:
+      - "8983:8983"
+    command: solr-precreate ranger_audits /opt/solr/server/solr/configsets/ranger_audits/
+
+  ranger-db:
+    image: apache/ranger-db:2.6.0
+    container_name: ranger-db
+    hostname: ranger-db.example.com
+    # networks:
+    #   - rangernw
+    healthcheck:
+      test: ["CMD-SHELL", "su -c 'pg_isready -q' postgres"]
+      interval: 10s
+      timeout: 2s
+      retries: 30
+
+  ranger:
+    image: apache/ranger:2.6.0
+    container_name: ranger-admin
+    hostname: ranger.example.com
+    depends_on:
+      - ranger-zk
+      - ranger-solr
+      - ranger-db
+    environment:
+      RANGER_VERSION: 2.6.0
+      RANGER_DB_TYPE: postgres
+    ports:
+      - "6080:6080"
+    # networks:
+    #   - rangernw
+    command: /home/ranger/scripts/ranger.sh
+
+# networks:
+#   rangernw:
+#     driver: bridge
+
+networks:
+  default:
+    external:
+      name: ranger-env
+
+ 
